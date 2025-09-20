@@ -1,0 +1,53 @@
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+DB_CONFIG = {
+    "dbname": "PMS_DB",
+    "user": "postgres",
+    "password": "Bhavika@12345",
+    "host": "localhost",
+    "port": "5432"
+}
+
+def get_connection():
+    return psycopg2.connect(**DB_CONFIG)
+
+# ---- CRUD FUNCTIONS ----
+def add_employee(first, last, dept, role):
+    query = """
+        INSERT INTO employees (first_name, last_name, department, role)
+        VALUES (%s, %s, %s, %s)
+        RETURNING emp_id;
+    """
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute(query, (first, last, dept, role))
+        conn.commit()
+        return cur.fetchone()[0]
+
+def fetch_employees():
+    with get_connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT * FROM employees ORDER BY emp_id;")
+        return cur.fetchall()
+
+def add_goal(emp_id, title, desc, target):
+    query = """
+        INSERT INTO performance_goals (emp_id, goal_title, goal_description, target_date)
+        VALUES (%s, %s, %s, %s);
+    """
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute(query, (emp_id, title, desc, target))
+        conn.commit()
+
+def record_review(emp_id, period, rating, comments):
+    query = """
+        INSERT INTO reviews (emp_id, review_period, rating, comments)
+        VALUES (%s, %s, %s, %s);
+    """
+    with get_connection() as conn, conn.cursor() as cur:
+        cur.execute(query, (emp_id, period, rating, comments))
+        conn.commit()
+
+def get_reviews(emp_id):
+    with get_connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT * FROM reviews WHERE emp_id = %s;", (emp_id,))
+        return cur.fetchall()
