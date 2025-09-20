@@ -1,0 +1,91 @@
+import streamlit as st
+from datetime import date
+import backend as db   # <-- make sure Backend.py exists with the right functions
+
+st.set_page_config(page_title="Performance Management System", layout="wide")
+
+st.title("Performance Management System")
+
+menu = st.sidebar.selectbox("Navigation", ["Employees", "Goals", "Reviews", "Reports"])
+
+# Employees Page
+if menu == "Employees":
+    st.header("Employee Management")
+
+    # Add new employee form
+    with st.form("add_emp", clear_on_submit=True):
+        first = st.text_input("First Name")
+        last = st.text_input("Last Name")
+        dept = st.text_input("Department")
+        role = st.text_input("Role")
+        submitted = st.form_submit_button("Add Employee")
+        if submitted:
+            emp_id = db.add_employee(first, last, dept, role)
+            st.success(f"✅ Employee added with ID {emp_id}")
+
+    # Show employees list
+    st.subheader("Current Employees")
+    employees = db.fetch_employees()
+    if employees is not None and not employees.empty:
+        st.dataframe(employees)
+    else:
+        st.info("No employees found. Add one above.")
+
+# Goals Page
+elif menu == "Goals":
+    st.header("Performance Goals")
+
+    emp_id = st.number_input("Employee ID", min_value=1, step=1)
+
+    # Add Goal
+    with st.form("add_goal", clear_on_submit=True):
+        title = st.text_input("Goal Title")
+        desc = st.text_area("Goal Description")
+        target = st.date_input("Target Date", min_value=date.today())
+        submitted = st.form_submit_button("Add Goal")
+        if submitted:
+            db.add_goal(emp_id, title, desc, target)
+            st.success("🎯 Goal Added")
+
+    # Show Goals
+    if st.button("Show Goals"):
+        goals = db.get_goals(emp_id)
+        if goals is not None and not goals.empty:
+            st.dataframe(goals)
+        else:
+            st.info("No goals found for this employee.")
+
+# Reviews Page
+elif menu == "Reviews":
+    st.header("Performance Reviews")
+
+    emp_id = st.number_input("Employee ID for Review", min_value=1, step=1)
+
+    # Add Review
+    with st.form("add_review", clear_on_submit=True):
+        period = st.text_input("Review Period (e.g., Q3 2025)")
+        rating = st.slider("Rating", 1, 5, 3)
+        comments = st.text_area("Comments")
+        submitted = st.form_submit_button("Submit Review")
+        if submitted:
+            db.record_review(emp_id, period, rating, comments)
+            st.success("✅ Review Recorded")
+
+    # Show Reviews
+    if st.button("Show Reviews"):
+        reviews = db.get_reviews(emp_id)
+        if reviews is not None and not reviews.empty:
+            st.dataframe(reviews)
+        else:
+            st.info("No reviews found for this employee.")
+
+# Reports Page
+elif menu == "Reports":
+    st.header("Performance Reports")
+    emp_id = st.number_input("Employee ID for Report", min_value=1, step=1)
+    if st.button("Generate Report"):
+        report = db.get_employee_report(emp_id)
+        if report:
+            st.write(report)
+        else:
+            st.warning("No report available for this employee.")
